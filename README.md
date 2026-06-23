@@ -39,21 +39,18 @@ Uvicorn
 Project Structure
 
 appointment-mgmt-api/
-│
-├── app/
-│   ├── api/
-│   ├── core/
-│   ├── models/
-│   ├── schemas/
-│   ├── create_tables.py
-│   └── main.py
-│
-├── alembic/
-│   └── versions/
-│
-├── .env.example
-├── alembic.ini
-└── README.md
+-> app/
+--> api/
+--> core/
+--> models/
+--> schemas/
+-> create_tables.py
+-> main.py
+-> alembic/
+--> versions/
+-> .env.example
+-> alembic.ini
+-> README.md
 
 
 
