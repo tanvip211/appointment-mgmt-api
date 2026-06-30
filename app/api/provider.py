@@ -34,9 +34,16 @@ def create_provider(
 
 @router.get("/", response_model=list[ProviderResponse])
 def get_providers(
+    skip: int = 0,
+    limit: int = 10,
     db: Session = Depends(get_db)
 ):
-    return db.query(Provider).all()
+    return (
+        db.query(Provider)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
 
 @router.get("/{provider_id}",

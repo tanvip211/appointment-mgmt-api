@@ -7,6 +7,8 @@ from datetime import date
 from app.core.dependencies import get_db
 from app.models.appointment import Appointment
 from app.models.timeslot import TimeSlot
+from app.models.customer import Customer
+from app.models.provider import Provider
 from app.schemas.appointment import (
     AppointmentCreate,
     AppointmentResponse
@@ -26,8 +28,8 @@ def create_appointment(
     existing_appointment = (
         db.query(Appointment)
         .filter(
-            Appointment.timeslot_id ==
-            appointment.timeslot_id
+            Appointment.timeslot_id == appointment.timeslot_id,
+            Appointment.status != "CANCELLED"
         )
         .first()
     )
@@ -38,6 +40,42 @@ def create_appointment(
             detail="This time slot is already booked"
         )
 
+    customer = (
+        db.query(Customer)
+        .filter(Customer.id == appointment.customer_id)
+        .first()
+    )
+
+    if not customer:
+        raise HTTPException(
+            status_code=404,
+            detail="Customer not found"
+        )
+
+    provider = (
+        db.query(Provider)
+        .filter(Provider.id == appointment.provider_id)
+        .first()
+    )
+
+    if not provider:
+        raise HTTPException(
+            status_code=404,
+            detail="Provider not found"
+        )
+
+    timeslot = (
+        db.query(TimeSlot)
+        .filter(TimeSlot.id == appointment.timeslot_id)
+        .first()
+    )
+
+    if not timeslot:
+        raise HTTPException(
+            status_code=404,
+            detail="TimeSlot not found"
+        )
+
     db_appointment = Appointment(
         customer_id=appointment.customer_id,
         provider_id=appointment.provider_id,
@@ -45,47 +83,10 @@ def create_appointment(
     )
 
     db.add(db_appointment)
-
     db.commit()
-
     db.refresh(db_appointment)
 
     return db_appointment
-
-
-@router.get("/", response_model=list[AppointmentResponse])
-def get_appointments(
-    skip: int = 0,
-    limit: int = 10,
-    db: Session = Depends(get_db)
-):
-    return (
-        db.query(Appointment)
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
-
-
-@router.get("/{appointment_id}",
-            response_model=AppointmentResponse)
-def get_appointment(
-    appointment_id: int,
-    db: Session = Depends(get_db)
-):
-    appointment = (
-        db.query(Appointment)
-        .filter(Appointment.id == appointment_id)
-        .first()
-    )
-
-    if not appointment:
-        raise HTTPException(
-            status_code=404,
-            detail="Appointment not found"
-        )
-
-    return appointment
 
 
 @router.put("/{appointment_id}",
@@ -187,7 +188,8 @@ def reschedule_appointment(
     existing_appointment = (
         db.query(Appointment)
         .filter(
-            Appointment.timeslot_id == new_timeslot_id
+            Appointment.timeslot_id == new_timeslot_id,
+            Appointment.status != "CANCELLED"
         )
         .first()
     )
@@ -201,6 +203,7 @@ def reschedule_appointment(
     appointment.timeslot_id = new_timeslot_id
 
     db.commit()
+    db.refresh(appointment)
 
     return {
         "message": "Appointment rescheduled successfully"

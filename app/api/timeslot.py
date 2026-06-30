@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from datetime import datetime
 
 from app.core.dependencies import get_db
 from app.models.timeslot import TimeSlot
@@ -19,6 +20,18 @@ def create_timeslot(
     timeslot: TimeSlotCreate,
     db: Session = Depends(get_db)
 ):
+    if timeslot.start_time <= datetime.now():
+        raise HTTPException(
+            status_code=400,
+            detail="Start time must be in the future"
+        )
+
+    if timeslot.end_time <= timeslot.start_time:
+        raise HTTPException(
+            status_code=400,
+            detail="End time must be greater than start time"
+        )
+
     db_timeslot = TimeSlot(
         provider_id=timeslot.provider_id,
         start_time=timeslot.start_time,
@@ -34,10 +47,16 @@ def create_timeslot(
 
 @router.get("/", response_model=list[TimeSlotResponse])
 def get_timeslots(
+    skip: int = 0,
+    limit: int = 10,
     db: Session = Depends(get_db)
 ):
-    return db.query(TimeSlot).all()
-
+    return (
+        db.query(TimeSlot)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
 @router.get("/{timeslot_id}",
             response_model=TimeSlotResponse)

@@ -1,9 +1,19 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 
 class ProviderCreate(BaseModel):
-    name: str
-    specialization: str
+    name: str = Field(
+        ...,
+        min_length=1,
+        max_length=100
+    )
+
+    specialization: str = Field(
+        ...,
+        min_length=1,
+        max_length=100
+    )
+
     email: EmailStr
 
 
